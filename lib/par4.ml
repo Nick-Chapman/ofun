@@ -31,9 +31,12 @@ type ('a,'b) k4 =
 let parse : 'a par -> string -> 'a =
   fun the_parser the_input_string ->
   let z = String.length the_input_string in
+  let char_at n = if n<z then sprintf "'%c'" the_input_string.[n] else "<eof>" in
   let conclude : 'a res -> 'a = function
-    | Bad n -> error (sprintf "parse error at %d" n)
-    | Good (n,a) -> if n < z then error (sprintf "unconsumed from %d" n) else a
+    | Bad n -> error (sprintf "parse error at %s (pos=%d)" (char_at n) n)
+    | Good (n,a) ->
+       if n < z then error (sprintf "unconsumed input from %s (pos=%d)" (char_at n) n) else
+         a (*success!*)
   in
   let rec run : type a. int -> a par -> (a,'r) k4 -> 'r res =
     fun n par ({succ;eps;fail;err} as k) ->
