@@ -1,48 +1,8 @@
 open Printf
 
-exception Panic of string
-let panic s = raise (Panic s)
-
-
-module Par : sig
-
-  type 'a par
-
-  val return : 'a -> 'a par
-  val (>>=) : 'a par -> ('a -> 'b par) -> 'b par
-  val sat : (char -> bool) -> char par
-
-  val parse : 'a par -> string -> 'a
-
-end = struct
-
-  type _ par =
-    | Return : 'a -> 'a par
-    | Bind : 'a par * ('a -> 'b par) -> 'b par
-    | Sat : (char -> bool) -> char par
-
-  let return x = Return x
-  let (>>=) par f = Bind (par,f)
-  let sat pred = Sat pred
-
-  let parse : 'a par -> string -> 'a =
-    fun par0 the_input_string ->
-    let rec loop : type a. int -> a par -> (int -> a -> 'r) -> 'r = fun n par k ->
-      match par with
-      | Return x -> k n x
-      | Sat pred ->
-         let c = the_input_string.[n] in
-         if pred c then k (n+1) c else panic (sprintf "Sat/no:%c" c)
-      | Bind (p,f) ->
-         loop n p (fun n a ->
-             let p2 = f a in
-             loop n p2 k)
-    in
-    let k0 _n a = a in
-    loop 0 par0 k0
-
-end
-
+exception Error of string
+let error s = raise (Error s)
+let panic s = error (sprintf "panic:%s" s)
 
 module Ast = struct
   type exp =
@@ -56,26 +16,32 @@ module Parser : sig
   val parse_exp : string -> Ast.exp
 end = struct
 
-  open Par
+  open Par4
+  let (let*) = (>>=)
 
   let digit_of_char : char -> int =
     let code0 = Char.code '0' in
     fun c -> Char.code c - code0
 
   let digit : int par =
-    sat (fun c -> c >= '0' && c <= '9') >>= fun c ->
+    let* c = sat (fun c -> c >= '0' && c <= '9') in
     return (digit_of_char c)
 
-  let int2 : int par =
-    digit >>= fun d1 ->
-    digit >>= fun d2 ->
+  let _int2 : int par =
+    let* d1 = digit in
+    let* d2 = digit in
     return (10*d1+d2)
 
+  let int : int par =
+    let rec loop acc =
+      alts [ return acc ; let* d = digit in loop (10*acc+d) ]
+    in let* d = digit in loop d
+
   let exp =
-    int2 >>= fun n ->
+    let* n = int in
     return (Ast.Num n)
 
-  let parse_exp = Par.parse exp
+  let parse_exp = Par4.parse exp
 
 end
 
@@ -109,6 +75,24 @@ end = struct
 end
 
 let main() =
+  printf "*ofun*(parser tests)\n";
+  let cases =
+    [ "43"
+    ; "432"
+    ; "x"
+    ; "4"
+    ; ""
+    ; "4321"
+    ; "43x21"
+    ] in
+  let test s =
+    printf "test: '%s' -> " s;
+    let res = (try PrettyPrint.pp_exp (Parser.parse_exp s) with Par4.Error s -> s) in
+    printf "%s\n" res
+  in
+  List.iter test cases
+
+let _main() =
   printf "*ofun*\n";
   let _e0 = Ast.(Sub (Num 100, Mul (Add (Num 20, Num 9), Num 2))) in
 
