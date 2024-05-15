@@ -126,7 +126,7 @@ let _test() =
   List.iter test cases
 
 let main() =
-  printf "*ofun*\n";
+  printf "*interpreter*\n";
   (*test();*)
   let _e0 = Ast.(Sub (Num 100, Mul (Add (Num 20, Num 9), Num 2))) in
 
