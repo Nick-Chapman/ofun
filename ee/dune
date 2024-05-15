@@ -1,0 +1,4 @@
+(executable
+ (public_name ee)
+ (name main)
+ (libraries explore_effects))
