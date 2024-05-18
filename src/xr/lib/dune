@@ -1,2 +1,3 @@
 (library
- (name explore_routes))
+ (name explore_routes)
+ (libraries routes))
