@@ -1,0 +1,2 @@
+(executable (name chop) (libraries extlib batteries containers))
+(cram (deps chop.exe))
